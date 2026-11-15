@@ -34,3 +34,41 @@ if pagina == "Inserir":
         if st.button("Importar para o MongoDB"):
             db.dados_csv.insert_many(df.to_dict("records"))
             st.success("CSV importado!")
+elif pagina == "Editar/Excluir":
+    st.header("Editar ou excluir cliente")
+    docs = list(db.clientes.find().limit(100))
+
+    if not docs:
+        st.info("Nenhum cliente. Insira dados primeiro.")
+    else:
+        opcoes = {f"{d['nome']} ({d['email']})": d["_id"] for d in docs}
+        escolhido = st.selectbox("Cliente", list(opcoes))
+        _id = opcoes[escolhido]
+        doc = db.clientes.find_one({"_id": _id})
+
+        novo_nome = st.text_input("Nome", doc["nome"])
+        nova_cidade = st.text_input("Cidade", doc["cidade"])
+
+        c1, c2 = st.columns(2)
+        if c1.button("💾 Salvar"):
+            db.clientes.update_one({"_id": _id},
+                                   {"$set": {"nome": novo_nome, "cidade": nova_cidade}})
+            st.success("Atualizado!")
+        if c2.button("🗑️ Excluir"):
+            db.clientes.delete_one({"_id": _id})
+            st.rerun()            
+elif pagina == "Concatenar":
+    st.header("Concatenação de dados")
+
+    st.subheader("A) Empilhar coleção + CSV")
+    arq = st.file_uploader("CSV para concatenar", type="csv", key="concat")
+    if arq:
+        df_banco = pd.DataFrame(list(db.clientes.find({}, {"_id": 0})))
+        df_csv = pd.read_csv(arq)
+        df_final = pd.concat([df_banco, df_csv], ignore_index=True)
+        st.write(f"{len(df_banco)} do banco + {len(df_csv)} do CSV = {len(df_final)} linhas")
+        st.dataframe(df_final.head(50))
+        if st.button("Salvar em 'clientes_concatenado'"):
+            db.clientes_concatenado.drop()
+            db.clientes_concatenado.insert_many(df_final.to_dict("records"))
+            st.success("Salvo!")
