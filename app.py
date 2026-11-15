@@ -67,8 +67,40 @@ elif pagina == "Editar/Excluir":
                                    {"$set": {"nome": novo_nome, "cidade": nova_cidade}})
             st.success("Atualizado!")
         if c2.button("🗑️ Excluir"):
+            db.pedidos.delete_many({"cliente_id": _id})
             db.clientes.delete_one({"_id": _id})
-            st.rerun()            
+            st.rerun()
+    st.divider()
+    st.subheader("Pedidos")
+
+    STATUS = ["entregue", "em transporte", "cancelado"]
+    filtro_status = st.selectbox("Filtrar por status", ["todos"] + STATUS)
+    filtro = {} if filtro_status == "todos" else {"status": filtro_status}
+    pedidos = list(db.pedidos.find(filtro).limit(100))
+    if not pedidos:
+        st.info("Nenhum pedido encontrado.")
+    else:
+        opcoes = {
+            f"{str(p['_id'])[-6:]} | {p['estado']} | R$ {p['valor']:.2f} | {p['status']}": p["_id"]
+            for p in pedidos
+        }
+        escolhido = st.selectbox("Pedido", list(opcoes))
+        _id_ped = opcoes[escolhido]
+        pedido = db.pedidos.find_one({"_id": _id_ped})
+
+        novo_status = st.selectbox("Status", STATUS, index=STATUS.index(pedido["status"]))
+        novo_valor = st.number_input("Valor (R$)", value=float(pedido["valor"]), min_value=0.0)
+
+        c1, c2 = st.columns(2)
+        if c1.button("💾 Salvar pedido"):
+            db.pedidos.update_one({"_id": _id_ped},
+                                  {"$set": {"status": novo_status, "valor": novo_valor}})
+            st.success("Pedido atualizado!")
+        if c2.button("🗑️ Excluir pedido"):
+            db.pedidos.delete_one({"_id": _id_ped})
+            st.toast("Pedido excluído!")
+            st.rerun()
+                                    
 elif pagina == "Concatenar":
     st.header("Concatenação de dados")
 
