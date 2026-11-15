@@ -26,6 +26,19 @@ if pagina == "Inserir":
         db.clientes.insert_many(clientes)
         st.success(f"{qtd} clientes inseridos!")
 
+        if st.button("Gerar pedidos falsos"):
+         clientes = list(db.clientes.find({}, {"_id": 1, "estado": 1}))
+        if not clientes:
+            st.warning("Gere clientes primeiro.")
+        else:
+            pedidos = [{
+                "cliente_id": c["_id"],
+                "estado": c["estado"],
+                "valor": round(random.uniform(20, 3000), 2),
+                "status": random.choice(["entregue", "em transporte", "cancelado"]),
+            } for c in random.choices(clientes, k=500)]
+            db.pedidos.insert_many(pedidos)
+            st.success("500 pedidos inseridos!")
     st.subheader("Importar CSV (ex.: Kaggle)")
     arq = st.file_uploader("Arquivo CSV", type="csv")
     if arq:
