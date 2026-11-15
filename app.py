@@ -72,3 +72,40 @@ elif pagina == "Concatenar":
             db.clientes_concatenado.drop()
             db.clientes_concatenado.insert_many(df_final.to_dict("records"))
             st.success("Salvo!")
+elif pagina == "Consultas":
+    st.header("Consultas")
+    consulta = st.selectbox("Escolha", [
+        "Clientes por estado",
+        "Faturamento por estado",
+        "Pedidos por status",
+        "Busca de clientes",
+    ])
+
+    if consulta == "Clientes por estado":
+        df = pd.DataFrame(list(db.clientes.aggregate([
+            {"$group": {"_id": "$estado", "total": {"$sum": 1}}},
+            {"$sort": {"total": -1}},
+        ]))).rename(columns={"_id": "estado"})
+        st.bar_chart(df.set_index("estado")["total"])
+        st.dataframe(df)
+
+    elif consulta == "Faturamento por estado":
+        df = pd.DataFrame(list(db.pedidos.aggregate([
+            {"$match": {"status": {"$ne": "cancelado"}}},
+            {"$group": {"_id": "$estado", "faturamento": {"$sum": "$valor"}}},
+            {"$sort": {"faturamento": -1}},
+        ]))).rename(columns={"_id": "estado"})
+        st.bar_chart(df.set_index("estado")["faturamento"])
+        st.dataframe(df)
+
+    elif consulta == "Pedidos por status":
+        df = pd.DataFrame(list(db.pedidos.aggregate([
+            {"$group": {"_id": "$status", "total": {"$sum": 1}}},
+        ]))).rename(columns={"_id": "status"})
+        st.bar_chart(df.set_index("status")["total"])
+
+    else:
+        uf = st.text_input("Estado (ex.: SP)").upper()
+        if uf:
+            df = pd.DataFrame(list(db.clientes.find({"estado": uf}, {"_id": 0}).limit(200)))
+            st.dataframe(df)            
