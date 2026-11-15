@@ -25,9 +25,8 @@ if pagina == "Inserir":
         } for _ in range(int(qtd))]
         db.clientes.insert_many(clientes)
         st.success(f"{qtd} clientes inseridos!")
-
-        if st.button("Gerar pedidos falsos"):
-         clientes = list(db.clientes.find({}, {"_id": 1, "estado": 1}))
+    if st.button("Gerar pedidos falsos"):
+        clientes = list(db.clientes.find({}, {"_id": 1, "estado": 1}))
         if not clientes:
             st.warning("Gere clientes primeiro.")
         else:
@@ -38,7 +37,7 @@ if pagina == "Inserir":
                 "status": random.choice(["entregue", "em transporte", "cancelado"]),
             } for c in random.choices(clientes, k=500)]
             db.pedidos.insert_many(pedidos)
-            st.success("500 pedidos inseridos!")
+            st.success("500 pedidos inseridos!")    
     st.subheader("Importar CSV (ex.: Kaggle)")
     arq = st.file_uploader("Arquivo CSV", type="csv")
     if arq:
@@ -99,6 +98,9 @@ elif pagina == "Consultas":
             {"$group": {"_id": "$estado", "total": {"$sum": 1}}},
             {"$sort": {"total": -1}},
         ]))).rename(columns={"_id": "estado"})
+        if df.empty:
+            st.warning("Sem dados para esta consulta. Insira dados na aba Inserir.")
+            st.stop()
         st.bar_chart(df.set_index("estado")["total"])
         st.dataframe(df)
 
@@ -108,6 +110,9 @@ elif pagina == "Consultas":
             {"$group": {"_id": "$estado", "faturamento": {"$sum": "$valor"}}},
             {"$sort": {"faturamento": -1}},
         ]))).rename(columns={"_id": "estado"})
+        if df.empty:
+                    st.warning("Sem dados para esta consulta. Insira dados na aba Inserir.")
+                    st.stop()
         st.bar_chart(df.set_index("estado")["faturamento"])
         st.dataframe(df)
 
@@ -115,6 +120,9 @@ elif pagina == "Consultas":
         df = pd.DataFrame(list(db.pedidos.aggregate([
             {"$group": {"_id": "$status", "total": {"$sum": 1}}},
         ]))).rename(columns={"_id": "status"})
+        if df.empty:
+                    st.warning("Sem dados para esta consulta. Insira dados na aba Inserir.")
+                    st.stop()
         st.bar_chart(df.set_index("status")["total"])
 
     else:
